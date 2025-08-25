@@ -30,7 +30,8 @@ func TestPublicKeyField(t *testing.T) {
 }
 
 func TestKeyGen(t *testing.T) {
-	pub, priv, shares, err := KeyGen(20, 10, 3, 5)
+	schnorr, _ := group.GenerateSchnorrGroup(3072, 256)
+	pub, priv, shares, err := KeyGen(schnorr, 3, 5)
 	if err != nil {
 		t.Fatalf("Error in KeyGen: %v", err)
 	}
@@ -226,9 +227,10 @@ func TestRecover(t *testing.T) {
 // handcrafted values above.
 func TestIntegration(t *testing.T) {
 	// 'Hello world', padded to 64 bytes
+	schnorr, _ := group.GenerateSchnorrGroup(3072, 256)
 	msg := []byte{0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}
 
-	pub, _, privShares, err := KeyGen(1024, 256, 4, 6)
+	pub, _, privShares, err := KeyGen(schnorr, 4, 6)
 	if err != nil {
 		t.Fatalf("KeyGen returned error: %v", err)
 	}
@@ -274,8 +276,8 @@ func TestIntegration(t *testing.T) {
 	}
 }
 
-func te_KeyGen(pBits int, qBits int, t int, n int) (PublicKey, []PrivateKeyShare, error) {
-	pub, _, privShares, err := KeyGen(pBits, qBits, t+1, n)
+func te_KeyGen(schnorr group.SchnorrGroup, t int, n int) (PublicKey, []PrivateKeyShare, error) {
+	pub, _, privShares, err := KeyGen(schnorr, t+1, n)
 	return pub, privShares, err
 }
 
@@ -296,13 +298,16 @@ func te_Recover(pub PublicKey, decryptionShares []DecryptionShare, ctxt Cipherte
 	return Recover(pub, decryptionShares, ctxt)
 }
 
-//func TestAll(pBits int, qBits int, t int, n int, msg []byte) {
+//func TestAll(t *testing.T) {
 //	// Zero-padded 'Hello world'
+//	n := 20
+//	schnorr, _ := group.GenerateSchnorrGroup(3072, 256)
+//	msg, _ := rand.Int(rand.Reader, schnorr.Q)
 //	fmt.Printf("Message = 0x%x\n", msg)
 //
 //	fmt.Println("\n---------------\n")
 //
-//	pub, privShares, err := te_KeyGen(pBits, qBits, t, n)
+//	pub, privShares, err := te_KeyGen(schnorr, t, n)
 //	if err != nil {
 //		fmt.Printf("Key generation failed: %v\n", err)
 //		return
@@ -316,7 +321,7 @@ func te_Recover(pub PublicKey, decryptionShares []DecryptionShare, ctxt Cipherte
 //
 //	fmt.Println("\n---------------\n")
 //
-//	ctxt, err := te_Enc(pub, msg)
+//	ctxt, err := te_Enc(pub, msg.Bytes())
 //	if err != nil {
 //		fmt.Printf("Encryption failed: %v\n", err)
 //		return
@@ -348,7 +353,7 @@ func te_Recover(pub PublicKey, decryptionShares []DecryptionShare, ctxt Cipherte
 //	}
 //	fmt.Printf("Recovered message: 0x%x\n", recovered)
 //
-//	if bytes.Equal(recovered, msg) {
+//	if bytes.Equal(recovered, msg.Bytes()) {
 //		fmt.Println("Recovered == Message")
 //	} else {
 //		fmt.Println("Recovered != Message")

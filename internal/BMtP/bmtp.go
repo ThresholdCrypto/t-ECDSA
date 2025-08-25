@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"t_ECDSA/internal/ElGamal"
 	"t_ECDSA/pkg/group"
-	"time"
 )
 
 type BeaverTriple struct {
@@ -18,26 +17,21 @@ type BeaverTriple struct {
 	C *big.Int // c = a*b
 }
 
-// triples, _ := GenerateTriples(params, 3, 5) // 3-out-of-5共享
+// triples, _ := GenerateTriples(params, 3, 5)//3-out-of-5
 func GenerateTriples(schG group.SchnorrGroup, t, n int) ([]BeaverTriple, error) {
 	triples := make([]BeaverTriple, n)
-
-	// 1. 随机生成多项式系数
 	coeffA := make([]*big.Int, t)
 	coeffB := make([]*big.Int, t)
 	for i := range coeffA {
 		coeffA[i], _ = rand.Int(rand.Reader, schG.Q)
 		coeffB[i], _ = rand.Int(rand.Reader, schG.Q)
 	}
-
-	// 2. 为每个参与者计算份额
 	for i := 1; i <= n; i++ {
 		x := big.NewInt(int64(i))
 		a := evalPoly(coeffA, x, schG.Q)
 		b := evalPoly(coeffB, x, schG.Q)
 		c := new(big.Int).Mul(a, b)
 		c.Mod(c, schG.Q)
-
 		triples[i-1] = BeaverTriple{a, b, c}
 	}
 	return triples, nil
@@ -58,7 +52,7 @@ func evalPoly(coeffs []*big.Int, x, q *big.Int) *big.Int {
 
 // Compute global value e,d
 func OnBMtP1(Zq gf.GF, xShare, yShare *big.Int, triple BeaverTriple) (*big.Int, *big.Int) {
-	// 1. 计算e = x - a 和 d = y - b
+	// 1. Compute e = x - a and d = y - b
 	ei := new(big.Int).Sub(xShare, triple.A)
 	ei.Mod(ei, Zq.P)
 	di := new(big.Int).Sub(yShare, triple.B)
@@ -74,7 +68,7 @@ func OnBMtP2(Zq gf.GF, pi, ei, di []*big.Int, triple BeaverTriple) *big.Int {
 	e, _ := kzg.LagrangeInterpolation(pi, ei)
 	d, _ := kzg.LagrangeInterpolation(pi, di)
 	fmt.Printf("Interpolation distributed value e:%d,d:%d\n", e[0], d[0])
-	// 3. 计算最终共享: ci + e*b + a*d + e*d
+	// 2. compute additive shares [kx]_i := ci + e*b + a*d + e*d
 	term1 := new(big.Int).Mul(e[0], triple.B)
 	term2 := new(big.Int).Mul(triple.A, d[0])
 	term3 := new(big.Int).Mul(e[0], d[0])
@@ -101,21 +95,17 @@ func OffBMtP(schG group.SchnorrGroup, t, n int) BeaverTriple {
 		fmt.Println("\n---------------\n")
 	}
 	// === 1-BMtP.Gen ===/=== 2-BMtP.cal1(a_i*b) ===
-	start1 := time.Now()
 	c_i.Mul(a_i, b)
 	msg := make([]byte, 64)
 	copy(msg, c_i.Bytes())
 	ctxt, err := ElGamal.Enc(pub, msg)
 	if err != nil {
-		fmt.Printf("Encryption failed: %v\n", err)
+		fmt.Printf("Threshold Encryption failed: %v\n", err)
 	}
 	fmt.Printf("plaintext: 0x%x\n", msg)
 	fmt.Printf("Message encrypted:\n\tR = %d\n\tC = 0x%x\n", ctxt.R, ctxt.C)
 	fmt.Println("\n---------------\n")
-	elapsed1 := time.Since(start1)
-	fmt.Printf("BMtP.Gen程序总运行时间: %s\n", elapsed1)
 	// === 3-BMtP.cal2(c_i) ===
-	start2 := time.Now()
 	decryptionShares := make([]ElGamal.DecryptionShare, t+1)
 	for i := 0; i < t+1; i++ {
 		share, err := ElGamal.Dec(pub, privShares[i], ctxt)
@@ -129,10 +119,7 @@ func OffBMtP(schG group.SchnorrGroup, t, n int) BeaverTriple {
 		fmt.Printf("\t Share %d = %d\n", share.ID, share.Value)
 	}
 	fmt.Println("\n---------------\n")
-	elapsed2 := time.Since(start2)
-	fmt.Printf("BMtP.cal2-PDec程序总运行时间: %s\n", elapsed2)
 	// === Output-Recover ===
-	start3 := time.Now()
 	re_M, err := ElGamal.Recover(pub, decryptionShares, ctxt)
 	if err != nil {
 		fmt.Printf("Message recovery failed: %v\n", err)
@@ -143,11 +130,7 @@ func OffBMtP(schG group.SchnorrGroup, t, n int) BeaverTriple {
 	} else {
 		fmt.Println("Recovered != Message")
 	}
-	//trimmed := bytes.TrimRight(recoM, "\x00")
-	//rci, _ := strconv.Atoi(string(trimmed))
-	re_ci := new(big.Int).SetBytes(re_M)
-	triple := BeaverTriple{a_i, b_i, re_ci}
-	elapsed3 := time.Since(start3)
-	fmt.Printf("BMtP.cal2-Recover程序总运行时间: %s\n", elapsed3)
+	rec_ci := new(big.Int).SetBytes(re_M)
+	triple := BeaverTriple{a_i, b_i, rec_ci}
 	return triple
 }
