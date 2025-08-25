@@ -135,5 +135,5 @@ func ExampleDoubleDLProof(secp256k1 curve.Group) {
 
 	// 3. Verifying
 	valid := VeriDDLProof(secp256k1, g1, g2, h1, h2, proof, msg)
-	fmt.Printf("Validation: %v\n", valid) // 输出 true
+	fmt.Printf("Validation: %v\n", valid) // true
 }
