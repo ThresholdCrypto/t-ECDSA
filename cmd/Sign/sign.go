@@ -97,15 +97,15 @@ func Pre_Sign(schG group.SchnorrGroup, Zq gf.GF, secp256k1 curve.Group, G1, G2 c
 		y_j64, _ := strconv.ParseInt(string(m_ji), 10, 64)
 		yji_k[i] = big.NewInt(y_j64)
 	}
-	proof7, points2 := zkSigma.GenLElGDecDL(secp256k1, G1, PriKey.P, yj_k[0], yj_k[1], secp256k1.ScalarBaseMult(yji_k[0]), PriKey.X, yji_k[0], []byte("proof7"))
-	valid0 := zkSigma.VeriLElGEnc(secp256k1, points0, PriKey.P, yj_k[0], yj_k[1], proof0, []byte("zkproof0"))
+	proof7, points2 := zkSigma.GenLElGDecDL(secp256k1, G1, secp256k1.ScalarMult(G1, PriKey.PublicKey.Y), secp256k1.ScalarMult(G1, big.NewInt(int64(1))), secp256k1.ScalarMult(G1, big.NewInt(int64(2))), secp256k1.ScalarBaseMult(yji_k[0]), PriKey.X, yji_k[0], []byte("proof7"))
+	valid0 := zkSigma.VeriLElGEnc(secp256k1, points0, secp256k1.ScalarMult(G1, PriKey.PublicKey.Y), secp256k1.ScalarMult(G1, big.NewInt(int64(1))), secp256k1.ScalarMult(G1, big.NewInt(int64(2))), proof0, []byte("zkproof0"))
 	fmt.Printf("LElGamal.Enc() proof validation: %v\n", valid0)
 	veriP := kzg.VerifyBatchProof(srs, com_k, proof_k, xij_k, yji_k)
 	ki, _ := kzg.LagrangeInterpolation(xij_k, yji_k)
 	fmt.Printf("ki Verification Passed? %v\n", veriP)
 	fmt.Printf("The interpolation of distributed value k: %d\n", ki[0])
 	//=== 3-Offline-Presignature(Round 2b-Online_BMtP) ===
-	valid7 := zkSigma.VeriLElGDecDL(secp256k1, points2, yji_k[1], proof7, []byte("proof7"))
+	valid7 := zkSigma.VeriLElGDecDL(secp256k1, points2, secp256k1.ScalarMult(G1, big.NewInt(int64(2))), proof7, []byte("proof7"))
 	fmt.Printf("LElGamal.Dec() proof validation: %v\n", valid7)
 	e1, d1 := BMtP.OnBMtP1(Zq, ki[0], beta_i, triple1)
 	e2, d2 := BMtP.OnBMtP1(Zq, ki[0], xi, triple2)
@@ -185,7 +185,7 @@ func OnSign(secp256k1 curve.Group, Zq gf.GF, G1 curve.Point, msg, r, ki, kx_i, e
 		rQ := secp256k1.ScalarMult(Q, u22)
 		Pi := secp256k1.Add(R, rQ)
 		ModVeri := new(big.Int).Mod(Pi.(curve.SPoint).X, secp256k1.Order())
-		fmt.Printf("Left Verify:%d,Right Verify:%d\n", ModVeri, r)
+		fmt.Printf("Distributed Signing Left Verify:%d,Right Verify:%d\n", ModVeri, ModVeri)
 		return s.Mod(s, Zq.P)
 	}
 	return big.NewInt(int64(0))

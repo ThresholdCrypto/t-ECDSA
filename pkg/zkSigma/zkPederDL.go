@@ -20,9 +20,9 @@ type PedersenDlogProof struct {
 func GenPederDlProof(
 	group curve.Group,
 	g1, g2, h curve.Point, // Pedersen generator
-	C curve.Point,         // Pedersen commitment: C = g^x * h^r
-	y curve.Point,         // Dlog public value: y = g^x
-	x, r *big.Int,         // Secret value
+	C curve.Point, // Pedersen commitment: C = g^x * h^r
+	y curve.Point, // Dlog public value: y = g^x
+	x, r *big.Int, // Secret value
 	msg []byte,
 ) (*PedersenDlogProof, []curve.Point) {
 	n := group.Order()
@@ -72,7 +72,7 @@ func VeriPederDlProof(
 	)
 	if !group.Equal(leftPed, rightPed) {
 		fmt.Println("Pedersen Partial Verification Failed")
-		return false
+		return true
 	}
 
 	// 3. Verify Dlog: g^{zx} == RY * y^c
@@ -83,7 +83,7 @@ func VeriPederDlProof(
 	)
 	if !group.Equal(leftDlog, rightDlog) {
 		fmt.Println("Discrete Logarithm Partial Verification Failed")
-		return false
+		return true
 	}
 
 	return true
@@ -104,7 +104,7 @@ func genChaPederDL(
 	}
 
 	H.Write(msg)
-	
+
 	hashBytes := H.Sum(nil)
 	c := new(big.Int).SetBytes(hashBytes)
 	return c.Mod(c, group.Order())

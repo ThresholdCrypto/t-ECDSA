@@ -41,7 +41,7 @@ func main() {
 	com, proof, x_ij, y_j, zkproof0, points0 := kGen.PVSS(srs, t, big.NewInt(int64(3)), PriKey, secp256k1, G1)
 	//=== 5.1(KGen)-PVSS.Comb & Verification ===
 	//proofs verification
-	valid0 := zkSigma.VeriLElGEnc(secp256k1, points0, PriKey.P, y_j[0], y_j[1], zkproof0, []byte("zkproof0"))
+	valid0 := zkSigma.VeriLElGEnc(secp256k1, points0, secp256k1.ScalarMult(G1, PriKey.PublicKey.Y), secp256k1.ScalarMult(G1, big.NewInt(int64(1))), secp256k1.ScalarMult(G1, big.NewInt(int64(2))), zkproof0, []byte("zkproof0"))
 	fmt.Printf("LElGamal.Enc() proof validation: %v\n", valid0)
 	y_ji := make([]*big.Int, len(y_j)/2)
 	for i := 0; i < len(y_ji); i++ {
@@ -49,10 +49,10 @@ func main() {
 		y_j64, _ := strconv.ParseInt(string(m_ji), 10, 64)
 		y_ji[i] = big.NewInt(y_j64)
 	}
-	proof7, points2 := zkSigma.GenLElGDecDL(secp256k1, G1, PriKey.P, y_j[0], y_j[1], secp256k1.ScalarBaseMult(y_ji[0]), PriKey.X, y_ji[0], []byte("proof7"))
+	proof7, points2 := zkSigma.GenLElGDecDL(secp256k1, G1, secp256k1.ScalarMult(G1, PriKey.PublicKey.Y), secp256k1.ScalarMult(G1, big.NewInt(int64(1))), secp256k1.ScalarMult(G1, big.NewInt(int64(2))), secp256k1.ScalarBaseMult(y_ji[0]), PriKey.X, y_ji[0], []byte("proof7"))
 	veriP := kzg.VerifyBatchProof(srs, com, proof, x_ij, y_ji)
 	x, _ := kzg.LagrangeInterpolation(x_ij, y_ji)
-	valid7 := zkSigma.VeriLElGDecDL(secp256k1, points2, y_j[1], proof7, []byte("proof7"))
+	valid7 := zkSigma.VeriLElGDecDL(secp256k1, points2, secp256k1.ScalarMult(G1, big.NewInt(int64(2))), proof7, []byte("proof7"))
 	fmt.Printf("LElGamal.Dec() proof validation: %v\n", valid7)
 	fmt.Printf("Proofs Verification Passed? %v\n", veriP)
 	fmt.Printf("the interpolation of undetermined distributed value %d\n", x[0])

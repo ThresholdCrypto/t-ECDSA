@@ -31,14 +31,13 @@ func PVSS(srs *kzg.TrustedSetup, t int, x_i *big.Int, PriKey *nELGa.PrivateKey, 
 	}
 	// === brocast encrypted value ===
 	y_j := make([][]byte, 2*len(y_ji))
-	var c1, c2 []byte
 	r1, _ := rand.Int(rand.Reader, secp256k1.Order())
 	for i := 0; i < len(y_ji); i++ {
 		c1, c2, _ := PriKey.PublicKey.Encrypt([]byte(y_ji[i].String()))
 		y_j[i*2] = c1
 		y_j[i*2+1] = c2
 	}
-	proof0, points0 := zkSigma.GenLElGEnc(secp256k1, G1, PriKey.P, c1, c2, y_ji[0], r1, []byte("zkproof0"))
+	proof0, points0 := zkSigma.GenLElGEnc(secp256k1, G1, secp256k1.ScalarMult(G1, PriKey.PublicKey.Y), secp256k1.ScalarMult(G1, big.NewInt(int64(1))), secp256k1.ScalarMult(G1, big.NewInt(int64(2))), y_ji[0], r1, []byte("zkproof0"))
 	// === Output ===
 	fmt.Println("==== KZG Polynomial Commitment Proof ====")
 	fmt.Printf("Polynomial: %s\n", kzg.PolynomialToString(poly))
